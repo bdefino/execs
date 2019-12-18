@@ -56,7 +56,7 @@ int hex_decodes(uint8_t *dest, size_t *destlen, size_t destlim,
   srclen = strlen(src);
 
   if (destlim * 2 < srclen) {
-    /* `lim` is too small */
+    /* `destlim` is too small */
 
     return -ENOMEM;
   }
