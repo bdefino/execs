@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+/* execute arbitrary instructions */
+
 #undef RET2P_RA_OFFSET
 
 #define RET2P_RA_OFFSET 2 /* in `sizeof(void *)`s; skip past canary */
@@ -94,7 +96,6 @@ int hex_decodes(uint8_t *dest, size_t *destlen, size_t destlim,
 /* return to an arbitrary location */
 static int ret2p(const char *p);
 
-/* execute a base-64 string */
 int main(int argc, char **argv) {
   unsigned int retval;
   uint8_t *textbuf;
@@ -102,21 +103,23 @@ int main(int argc, char **argv) {
 
   if (argc != 2
       || !strlen(argv[1])) {
-    printf("execute a string (encoded as base-64)\n" \
-      "Usage: %s BASE64\n" \
-      "BASE64\n" \
-      "\tnonempty base-64-encoded instruction sequence\n", argv[0]);
+    printf("execute arbitrary instructions\n" \
+      "Usage: %s HEX\n" \
+      "HEX\n" \
+      "\tnonempty instruction sequence, encoded as hexadecimal\n", argv[0]);
     return 1;
   }
   
   /* create the text buffer */
 
   textbuflen = strlen(argv[1]);
+  textbuflen = (textbuflen % 2 ? textbuflen + 1 : textbuflen) / 2;
   textbuf = (uint8_t *) alloca(textbuflen);
 
   if (textbuf == NULL) {
     return -ENOMEM;
   }
+  memset(textbuf, '\0', textbuflen);
 
   /* decode */
 
