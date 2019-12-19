@@ -4,9 +4,12 @@ CFLAGS := -z execstack
 DEST := execs
 SRCS := execs.c
 
-.PHONY: all
+.PHONY: clean build
 
-all:
+build:
 	[ -e $(BUILD) ] || mkdir $(BUILD)
 	$(CC) $(CFLAGS) $(SRCS) -o $(BUILD)/$(DEST)
+
+clean:
+	[ -e $(BUILD) ] && rm -r $(BUILD)
 
