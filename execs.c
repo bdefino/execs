@@ -9,9 +9,21 @@
 
 /* execute arbitrary instructions */
 
+#undef HELP
 #undef RET2P_RA_OFFSET
+#undef USAGE
 
+#define HELP (USAGE \
+  "HEX\n" \
+  "\thexadecimal-encoded instruction array\n" \
+  "OPTIONS\n" \
+  "\t-h, --help\n" \
+  "\t\tdisplay this text\n" \
+  "\t--heap\n" \
+  "\t\texecute instructions in the heap\n" \
+  "\t\t(by default, the stack is used\n")
 #define RET2P_RA_OFFSET 2 /* in `sizeof(void *)`s; skip past canary */
+#define USAGE "execute arbitrary instructions\nUsage: %s [OPTIONS] HEX\n"
 
 /* decode a hexadecimal character */
 int hex_decodec(uint8_t *dest, char c) {
@@ -97,24 +109,46 @@ int hex_decodes(uint8_t *dest, size_t *destlen, size_t destlim,
 static int ret2p(const char *p);
 
 int main(int argc, char **argv) {
+  int heap; /* whether to execute in the heap */
+  char *instructions;
   unsigned int retval;
   uint8_t *textbuf;
   size_t textbuflen;
 
-  if (argc != 2
-      || !strlen(argv[1])) {
-    printf("execute arbitrary instructions\n" \
-      "Usage: %s HEX\n" \
-      "HEX\n" \
-      "\tnonempty instruction sequence, encoded as hexadecimal\n", argv[0]);
+  /* parse arguments */
+
+  if (argc < 2
+      || argc > 4) {
+    printf(USAGE, argv[0]);
     return 1;
+  }
+  heap = 0;
+  instructions = NULL;
+
+  for (argv++; *argv != NULL; argv++) {
+    if (!strcmp(*argv, "-h")
+        || !strcmp(*argv, "--help")) {
+      printf(HELP, argv[0]);
+      return 0;
+    } else if (!strcmp(*argv, "--heap")) {
+      heap = 1;
+    } else {
+      if (instructions != NULL) {
+        fprintf(stderr, "Already multiple instruction arrays.\n");
+        fprintf(stderr, USAGE, argv[0]);
+        return 1;
+      }
+      instructions = *argv;
+    }
   }
   
   /* create the text buffer */
 
-  textbuflen = strlen(argv[1]);
+  textbuflen = strlen(instructions);
   textbuflen = (textbuflen % 2 ? textbuflen + 1 : textbuflen) / 2;
-  textbuf = (uint8_t *) alloca(textbuflen);
+  textbuf = (uint8_t *) (heap
+    ? malloc(textbuflen)
+    : alloca(textbuflen)); /* zeroed later */
 
   if (textbuf == NULL) {
     return -ENOMEM;
@@ -123,7 +157,7 @@ int main(int argc, char **argv) {
 
   /* decode */
 
-  retval = hex_decodes(textbuf, NULL, textbuflen, argv[1]);
+  retval = hex_decodes(textbuf, NULL, textbuflen, instructions);
 
   if (retval) {
     return retval;
